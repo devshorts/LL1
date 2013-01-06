@@ -14,8 +14,15 @@ type TokenType =
     | RightBracket
     | EOF
 
+let getTokenName item = 
+    match item with
+        | TokenType.Name a -> a
+        | TokenType.Comma -> "COMMA"
+        | TokenType.EOF -> "EOF"
+        | TokenType.LeftBracket -> "LBRACK"
+        | TokenType.RightBracket -> "RBRACK"
  
-type Tokenizer(lexer:Lexer) =
+type Tokenizer(lexer:Lexer) as this =
 
     // lookahead determinzer
     let (|Letter|Comma|LeftBracket|RightBracket|EOF|WhiteSpace|) character = 
@@ -36,9 +43,17 @@ type Tokenizer(lexer:Lexer) =
                 Letter
             else 
                 raise UnexpectedToken    
-                        
+    
+    let mutable computedTokens = []
+    
+    do
+        // initialize computed tokens
+        computedTokens <- this.getTokens
+                                        
+    member this.tokens = computedTokens
+
     // use the lookahead match to construct the next token
-    member this.tokens = 
+    member private this.getTokens = 
         let rec tokenize' input src = 
 
             // helper recursive functions
