@@ -10,3 +10,19 @@ token := \d+\w+
 ```
 
 This is just a practice out of the LL(1) Recrusive-Descent Lexer from Language Implementation Patterns by Terence Parr.  I wanted to do it in F# to utilize active patterns and just for kicks :)
+
+The output for input
+
+```
+let sourceCode = @"[long name,b, 
+
+  [c,second long name]
+  
+  ]"
+```
+
+Is
+
+```
+LBRACK,long name,COMMA,b,COMMA,LBRACK,c,COMMA,second long name,RBRACK,RBRACK,EOF
+```
