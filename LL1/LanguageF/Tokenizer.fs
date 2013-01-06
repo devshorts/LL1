@@ -14,15 +14,15 @@ type TokenType =
     | RightBracket
     | EOF
 
-       
+ 
 type Tokenizer(lexer:Lexer) =
-    // the lookahead match
 
-    let (|Letter|Comma|LeftBracket|RightBracket|EOF|WhiteSpace|) i = 
-        if Option.isNone i then
+    // lookahead determinzer
+    let (|Letter|Comma|LeftBracket|RightBracket|EOF|WhiteSpace|) character = 
+        if Option.isNone character then
             EOF
         else 
-            let input = Option.get i
+            let input = Option.get character
 
             if input = "," then
                 Comma
@@ -35,8 +35,8 @@ type Tokenizer(lexer:Lexer) =
             else if Regex.IsMatch(input, "[a-z]|[A-Z]|[0-9]") then 
                 Letter
             else 
-                raise UnexpectedToken                
-
+                raise UnexpectedToken    
+                        
     // use the lookahead match to construct the next token
     member this.tokens = 
         let rec tokenize' input src = 
@@ -57,7 +57,7 @@ type Tokenizer(lexer:Lexer) =
         List.rev (tokenize' lexer.current [])
 
     // if the lookahead match found a letter, build out the name (and include whitespace)
-    member this.getName() = 
+    member private this.getName() = 
         let rec getName' current tokens =
             match current with
                 | Letter | WhiteSpace -> getName' (lexer.consume()) (current::tokens)
