@@ -4,11 +4,13 @@ LL1
 A simple LL(1) test lexer and tokenizer for things of the form
 
 ```
-list := [tokens | list]
+list := [elements]
 
-tokens := token,token | token
+elements := element (, element)*
 
-token := \d+\w+
+element := NAME | list
+
+NAME = \d+\w+
 ```
 
 This is just a practice out of the LL(1) Recrusive-Descent Lexer from Language Implementation Patterns by Terence Parr.  I wanted to do it in F# to utilize active patterns and just for kicks :)
@@ -28,3 +30,5 @@ Is
 ```
 LBRACK,long name,COMMA,b,COMMA,LBRACK,c,COMMA,second long name,RBRACK,RBRACK,EOF
 ```
+
+There is also a parser that validates the BNF 
