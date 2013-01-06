@@ -6,33 +6,27 @@ open Lexer
 open Parser
 open Tokenizer
 
-(* 
+let invalidSource = @"[long name,b,
+z, [
 
-Tests for LL(1) simple lexer/tokenizer
+ffff asdf = zappos = , test]]"
 
-*)
+let sourceCode = @"[long name,b,z, [ test]]"
 
-let sourceCode = @"[long name,b, 
+let tokenizer = new Tokenizer(new Lexer(invalidSource))
 
-  [c,second long name
-  
-  ]"
+let validTokenizer = new Tokenizer(new Lexer(sourceCode))
 
-let tokenizer = new Tokenizer(new Lexer(sourceCode))
+let invalidParser = new Parser(tokenizer)
 
-let rec printList l = 
-    match l with 
-        | [] -> Console.Write("no tokens")
-        | h::[] -> Console.Write("{0}", Tokenizer.getTokenName h)  
-        | h::t -> Console.Write("{0},", Tokenizer.getTokenName h)
-                  printList t                 
+let validParser = new Parser(validTokenizer)
 
-printList (tokenizer.tokens)
+for p in [validParser; invalidParser] do
+    Console.WriteLine()
 
-let parser = new Parser(tokenizer)
-
-parser.list() |> ignore
-
-Console.WriteLine("Code valid!") |> ignore
+    if p.validate() then
+        Console.WriteLine("Code valid!")
+    else
+        Console.WriteLine("The code is invalid")
 
 Console.ReadKey() |> ignore

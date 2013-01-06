@@ -7,26 +7,24 @@ open Utils
 exception InvalidSyntax of string 
 
 type ParserBase(tokenizer:Tokenizer) = 
-    
-    let lookahead = 
-        let rec lookahead' (tokens) =
-            seq{
-                match tokens with 
-                    | h::[] -> yield h
-                    | h::t -> yield h
-                              yield! lookahead' t
-            }
+    let mutable index = 0
 
-        let sequence = lookahead' tokenizer.tokens
-        let enumerator = sequence.GetEnumerator()
-        enumerator.MoveNext() |> ignore
-        enumerator
+    let tokens = List.toArray tokenizer.tokens
 
-    member internal this.consume() = lookahead.MoveNext()
+    member internal this.consume() = 
+        index <- index + 1
+        this.current()
 
-    member internal this.current() = lookahead.Current
+    member internal this.current() = 
+        tokens.[index]
 
-    member internal this.select token = 
+    member internal this.lookForward n = 
+        tokens.[index + n]
+
+    member internal this.consumeAndAdvance token = 
+        let invalidEx token curr = 
+            InvalidSyntax (String.Format("Expecting token type {0} but found {1}", (Tokenizer.getTokenName token), (Tokenizer.getTokenName (this.current()))))
+
         if this.current() = token then
             this.consume()
         else
@@ -34,8 +32,8 @@ type ParserBase(tokenizer:Tokenizer) =
                 | Name _ -> 
                     match this.current() with 
                         | Name _ -> this.consume()
-                        | _ -> raise (InvalidSyntax (String.Format("Expecting token type {0} but found {1}", (Tokenizer.getTokenName token), (Tokenizer.getTokenName (this.current())))))
-                | _ -> raise (InvalidSyntax (String.Format("Expecting token type {0} but found {1}", (Tokenizer.getTokenName token), (Tokenizer.getTokenName (this.current())))))
+                        | _ -> raise (invalidEx token (this.current()))
+                | _ -> raise (invalidEx token (this.current()))
 
 
 (* Validates syntax *)
@@ -43,17 +41,27 @@ type ParserBase(tokenizer:Tokenizer) =
 type Parser(tokenizer:Tokenizer) = 
     inherit ParserBase(tokenizer)
 
-    member this.list() = 
-        this.select TokenType.LeftBracket |> ignore
+    member this.validate() = 
+        try
+            this.list()
+            true
+        with
+            | Tokenizer.UnexpectedToken -> Console.WriteLine("There was an unexpected token found")
+                                           false
+            | InvalidSyntax(error) -> Console.WriteLine(error)
+                                      false
+
+    member private this.list() = 
+        this.consumeAndAdvance TokenType.LeftBracket |> ignore
         this.elements()
-        this.select TokenType.RightBracket |> ignore
+        this.consumeAndAdvance TokenType.RightBracket |> ignore
         
     member private this.elements() = 
         this.element() |> ignore
 
         let rec getAllElements() = 
             match this.current() with 
-                | TokenType.Comma -> this.select TokenType.Comma |> ignore
+                | TokenType.Comma -> this.consumeAndAdvance TokenType.Comma |> ignore
                                      this.element()
                                      getAllElements()
                 | _ -> ()
@@ -62,7 +70,14 @@ type Parser(tokenizer:Tokenizer) =
 
     member private this.element() = 
         match this.current() with 
-            | TokenType.Name _ -> this.select (TokenType.Name("")) |> ignore
+            | TokenType.Name _ -> 
+                match this.lookForward 1 with
+                    | TokenType.Assignment _ -> 
+                        this.consumeAndAdvance (TokenType.Name("")) |> ignore
+                        this.consumeAndAdvance TokenType.Assignment |> ignore
+                        this.consumeAndAdvance (TokenType.Name("")) |> ignore
+                    | _ -> 
+                        this.consumeAndAdvance (TokenType.Name("")) |> ignore    
             | TokenType.LeftBracket -> this.list() 
             | _ -> raise (InvalidSyntax (String.Format("Invalid element syntax. Found {0}", Tokenizer.getTokenName (this.current()))))
 
