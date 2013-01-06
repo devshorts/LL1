@@ -4,7 +4,9 @@ LL1
 A simple LL(1) test lexer and tokenizer for things of the form
 
 ```
-list := [token|list]
+list := [tokens | list]
+
+tokens := token,token | token
 
 token := \d+\w+
 ```
