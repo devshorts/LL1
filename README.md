@@ -1,4 +1,4 @@
-LL1
+LLk
 ===
 
 A simple LL(k) test lexer and tokenizer for things of the form
