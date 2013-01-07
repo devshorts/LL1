@@ -90,7 +90,12 @@ type Tokenizer(lexer:Lexer) as this =
 
             // helper recursive functions
             let next item = tokenize' (lexer.consume()) (item::src)
+
+            // don't consume the next character, assume it's been consumed
+            // so just use the current
             let nextWithCurrent item = tokenize' lexer.current (item::src)
+
+            // consume but ignore, so pass the accumulator through
             let ignoreToken() = tokenize' (lexer.consume()) src
 
             match input with
