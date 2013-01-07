@@ -22,6 +22,10 @@ type ParserBase(tokenizer:Tokenizer) =
     member internal this.current() = 
         tokens.[index]
 
+    member internal this.currentToken() = 
+        let (token, value) = this.current()
+        token
+
     member internal this.lookForward n = 
         tokens.[index + n]
 
@@ -65,25 +69,27 @@ type Parser(tokenizer:Tokenizer) =
         this.element() |> ignore
 
         let rec getAllElements() = 
-            match this.current() with 
-                | (TokenType.Comma, _) -> this.consumeAndAdvance TokenType.Comma |> ignore
-                                          this.element()
-                                          getAllElements()
+            match this.currentToken() with 
+                | TokenType.Comma -> 
+                                        this.consumeAndAdvance TokenType.Comma |> ignore
+                                        this.element()
+                                        getAllElements()
                 | _ -> ()
 
         getAllElements()
 
     member private this.element() = 
-        match this.current() with 
-            | (TokenType.Name, _) -> 
-                match this.lookForward 1 with
-                    | (TokenType.Assignment, _) -> 
+        match this.currentToken() with 
+            | TokenType.Name -> 
+                let (nextToken, _) = this.lookForward 1
+                match nextToken with
+                    | TokenType.Assignment -> 
                         this.consumeAndAdvance TokenType.Name |> ignore
                         this.consumeAndAdvance TokenType.Assignment |> ignore
                         this.consumeAndAdvance TokenType.Name |> ignore
                     | _ -> 
                         this.consumeAndAdvance TokenType.Name |> ignore    
-            | (TokenType.LeftBracket, _) -> this.list() 
+            | TokenType.LeftBracket -> this.list() 
             | _ -> raise (InvalidSyntax (String.Format("Invalid element syntax. Found {0}", Tokenizer.getTokenName (this.current()))))
 
     
