@@ -11,7 +11,7 @@ z, [
 
 ffff asdf = zappos = , test]]"
 
-let sourceCode = @"[long name,b,z, [ test]]"
+let sourceCode = @"[long name,b,z, [ test = too, be = see, [third list]]]"
 
 let tokenizer = new Tokenizer(new Lexer(invalidSource))
 
@@ -25,8 +25,8 @@ for p in [validParser; invalidParser] do
     Console.WriteLine()
 
     if p.validate() then
-        Console.WriteLine("Code valid!")
+        Console.WriteLine("Code valid! For: {0}", p.source)
     else
-        Console.WriteLine("The code is invalid")
+        Console.WriteLine("The code is invalid! For: {0}", p.source)
 
 Console.ReadKey() |> ignore

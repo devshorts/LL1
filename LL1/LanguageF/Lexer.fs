@@ -2,20 +2,15 @@
 
 open System
 
-type Lexer(source:String) = 
-    let mutable index = 0
-    let mutable c = None
-    let getNextChar() = 
-        if index >= source.Length then
-            None
-        else 
-            let c = source.Chars index
-            index <- index + 1
-            Some(c.ToString())
-    do
-        c <- getNextChar()
+type Lexer(source:String) =     
+    let _current = 
+                if source.Length > 0 then
+                    Some (((source.Chars 0)).ToString())
+                else 
+                    None
 
-    member this.current = c
-    member this.consume() = 
-        c <- getNextChar()
-        c
+    member this.current = _current
+
+    member this.consume() = new Lexer(source.Substring 1)        
+
+    member this.source = source

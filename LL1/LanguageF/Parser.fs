@@ -11,6 +11,8 @@ type ParserBase(tokenizer:Tokenizer) =
 
     let tokens = List.toArray tokenizer.tokens
 
+    member this.source = tokenizer.source
+
     member internal this.consumeToken() = 
         let (token, value) = this.consume()
         token
