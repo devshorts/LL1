@@ -7,21 +7,29 @@ open Lexer
 exception UnexpectedToken
 
 type TokenType = 
-    | Name of String
+    | Name
     | Comma 
     | LeftBracket 
     | RightBracket
     | Assignment
     | EOF
 
-let getTokenName item = 
-    match item with
-        | TokenType.Name name -> name
+type Token = TokenType * String
+
+let getTokenTypeName tokenType = 
+    match tokenType with
+        | TokenType.Name -> "NAME"
         | TokenType.Comma -> "COMMA"
         | TokenType.EOF -> "EOF"
         | TokenType.Assignment -> "="
         | TokenType.LeftBracket -> "LBRACK"
         | TokenType.RightBracket -> "RBRACK"
+
+let getTokenName item = 
+    let (tokenType, name) = item
+    match tokenType with 
+        | Name -> name
+        | _ -> getTokenTypeName tokenType           
  
  
 let rec printList l = 
@@ -76,6 +84,8 @@ type Tokenizer(lexer:Lexer) as this =
 
     // use the lookahead match to construct the next token
     member private this.computeTokens = 
+        let createToken token char = (token, Option.get char)
+
         let rec tokenize' input src = 
 
             // helper recursive functions
@@ -84,13 +94,13 @@ type Tokenizer(lexer:Lexer) as this =
             let ignoreToken() = tokenize' (lexer.consume()) src
 
             match input with
-                | Letter _ -> nextWithCurrent (TokenType.Name(this.getName()))
-                | Comma _ -> next TokenType.Comma
-                | LeftBracket _ -> next TokenType.LeftBracket
-                | RightBracket _ -> next TokenType.RightBracket
-                | Assignment _ -> next TokenType.Assignment
+                | Letter _ -> nextWithCurrent (createToken TokenType.Name (this.getName()))
+                | Comma _ -> next (createToken TokenType.Comma input)
+                | LeftBracket _ -> next (createToken TokenType.LeftBracket input)
+                | RightBracket _ -> next (createToken TokenType.RightBracket input)
+                | Assignment _ -> next (createToken TokenType.Assignment input)
                 | WhiteSpace _ -> ignoreToken()
-                | EOF _ -> TokenType.EOF::src
+                | EOF _ -> (createToken TokenType.EOF (Some(String.Empty)))::src
                 | _ -> raise UnexpectedToken 
 
         List.rev (tokenize' lexer.current [])
@@ -103,4 +113,4 @@ type Tokenizer(lexer:Lexer) as this =
                 | _ -> tokens    
 
         let name = List.fold(fun acc i -> (Option.get i) + acc) "" (getName' lexer.current [])
-        name.Trim()
+        Some(name.Trim())

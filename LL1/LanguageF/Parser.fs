@@ -11,6 +11,10 @@ type ParserBase(tokenizer:Tokenizer) =
 
     let tokens = List.toArray tokenizer.tokens
 
+    member internal this.consumeToken() = 
+        let (token, value) = this.consume()
+        token
+
     member internal this.consume() = 
         index <- index + 1
         this.current()
@@ -23,15 +27,16 @@ type ParserBase(tokenizer:Tokenizer) =
 
     member internal this.consumeAndAdvance token = 
         let invalidEx token curr = 
-            InvalidSyntax (String.Format("Expecting token type {0} but found {1}", (Tokenizer.getTokenName token), (Tokenizer.getTokenName (this.current()))))
+            InvalidSyntax (String.Format("Expecting token type {0} but found {1}", (Tokenizer.getTokenTypeName token), (Tokenizer.getTokenName (this.current()))))
 
-        if this.current() = token then
-            this.consume()
+        let (currentToken, value) = this.current()
+        if currentToken = token then
+            this.consumeToken()
         else
             match token with 
-                | Name _ -> 
-                    match this.current() with 
-                        | Name _ -> this.consume()
+                | Name -> 
+                    match currentToken with 
+                        | Name -> this.consumeToken()
                         | _ -> raise (invalidEx token (this.current()))
                 | _ -> raise (invalidEx token (this.current()))
 
@@ -61,24 +66,24 @@ type Parser(tokenizer:Tokenizer) =
 
         let rec getAllElements() = 
             match this.current() with 
-                | TokenType.Comma -> this.consumeAndAdvance TokenType.Comma |> ignore
-                                     this.element()
-                                     getAllElements()
+                | (TokenType.Comma, _) -> this.consumeAndAdvance TokenType.Comma |> ignore
+                                          this.element()
+                                          getAllElements()
                 | _ -> ()
 
         getAllElements()
 
     member private this.element() = 
         match this.current() with 
-            | TokenType.Name _ -> 
+            | (TokenType.Name, _) -> 
                 match this.lookForward 1 with
-                    | TokenType.Assignment _ -> 
-                        this.consumeAndAdvance (TokenType.Name("")) |> ignore
+                    | (TokenType.Assignment, _) -> 
+                        this.consumeAndAdvance TokenType.Name |> ignore
                         this.consumeAndAdvance TokenType.Assignment |> ignore
-                        this.consumeAndAdvance (TokenType.Name("")) |> ignore
+                        this.consumeAndAdvance TokenType.Name |> ignore
                     | _ -> 
-                        this.consumeAndAdvance (TokenType.Name("")) |> ignore    
-            | TokenType.LeftBracket -> this.list() 
+                        this.consumeAndAdvance TokenType.Name |> ignore    
+            | (TokenType.LeftBracket, _) -> this.list() 
             | _ -> raise (InvalidSyntax (String.Format("Invalid element syntax. Found {0}", Tokenizer.getTokenName (this.current()))))
 
     
