@@ -6,19 +6,29 @@ open Utils
 
 exception InvalidSyntax of string 
 
-type ParserBase(tokenizer:Tokenizer) = 
+type TokenizerConsumer(tokenizer:Tokenizer) = 
     let mutable index = 0
 
-    let tokens = List.toArray tokenizer.tokens
+    let mutable snapshotIndex = 0
+
+    let tokens = tokenizer.tokens
 
     member this.source = tokenizer.source
 
     member internal this.consumeToken() = 
         let (token, value) = this.consume()
         token
+        
+    member internal this.snapshot() = 
+        snapshotIndex <- index
+
+    member internal this.relase() = 
+        index <- snapshotIndex
 
     member internal this.consume() = 
-        index <- index + 1
+        if index < ((List.length tokens) - 1) then
+            index <- index + 1
+
         this.current()
 
     member internal this.current() = 
@@ -50,11 +60,37 @@ type ParserBase(tokenizer:Tokenizer) =
 (* Validates syntax *)
 
 type Parser(tokenizer:Tokenizer) = 
-    inherit ParserBase(tokenizer)
+    let tokenizerConsumer = new TokenizerConsumer(tokenizer)
+
+    let take item = tokenizerConsumer.consumeAndAdvance item
+
+    let peek num = tokenizerConsumer.lookForward num
+
+    let (|Alt|_|) func item = 
+        try
+            try
+                tokenizerConsumer.snapshot()
+
+                func()
+                
+                Some()
+            with
+                | _ -> None
+        finally
+            tokenizerConsumer.relase()
+        
+        
+    member this.source = tokenizerConsumer.source
 
     member this.validate() = 
+        let rList = fun () -> this.root this.list
+        let rAssign = fun () -> this.root this.assign
+
         try
-            this.list()
+            match () with
+                | Alt rList -> this.list()
+                | Alt rAssign -> this.assign()
+                | _ -> raise (InvalidSyntax ("Could not find any suitable form"))
             true
         with
             | Tokenizer.UnexpectedToken -> Console.WriteLine("There was an unexpected token found")
@@ -62,18 +98,31 @@ type Parser(tokenizer:Tokenizer) =
             | InvalidSyntax(error) -> Console.WriteLine(error)
                                       false
 
+    member private this.root func = 
+        func()
+        take TokenType.EOF |> ignore
+
+    member private this.assign() = 
+        this.list()
+
+        take TokenType.Assignment |> ignore
+
+        this.list()
+
     member private this.list() = 
-        this.consumeAndAdvance TokenType.LeftBracket |> ignore
+        take TokenType.LeftBracket |> ignore
+
         this.elements()
-        this.consumeAndAdvance TokenType.RightBracket |> ignore
+        
+        take TokenType.RightBracket |> ignore
         
     member private this.elements() = 
         this.element() |> ignore
 
         let rec getAllElements() = 
-            match this.currentToken() with 
+            match tokenizerConsumer.currentToken() with 
                 | TokenType.Comma -> 
-                                        this.consumeAndAdvance TokenType.Comma |> ignore
+                                        take TokenType.Comma |> ignore
                                         this.element()
                                         getAllElements()
                 | _ -> ()
@@ -81,17 +130,20 @@ type Parser(tokenizer:Tokenizer) =
         getAllElements()
 
     member private this.element() = 
-        match this.currentToken() with 
+        match tokenizerConsumer.currentToken() with 
             | TokenType.Name -> 
-                let (nextToken, _) = this.lookForward 1
+                let (nextToken, _) = peek 1
+
                 match nextToken with
                     | TokenType.Assignment -> 
-                        this.consumeAndAdvance TokenType.Name |> ignore
-                        this.consumeAndAdvance TokenType.Assignment |> ignore
-                        this.consumeAndAdvance TokenType.Name |> ignore
+                        take TokenType.Name |> ignore
+                        take TokenType.Assignment |> ignore
+                        take TokenType.Name |> ignore
                     | _ -> 
-                        this.consumeAndAdvance TokenType.Name |> ignore    
+                        take TokenType.Name |> ignore    
+        
             | TokenType.LeftBracket -> this.list() 
-            | _ -> raise (InvalidSyntax (String.Format("Invalid element syntax. Found {0}", Tokenizer.getTokenName (this.current()))))
+        
+            | _ -> raise (InvalidSyntax (String.Format("Invalid element syntax. Found {0}", Tokenizer.getTokenName (tokenizerConsumer.current()))))
 
     

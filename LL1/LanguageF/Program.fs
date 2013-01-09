@@ -6,12 +6,9 @@ open Lexer
 open Parser
 open Tokenizer
 
-let invalidSource = @"[long name,b,
-z, [
+let invalidSource = @"[long name] = [foo, [xyz, test]"
 
-ffff asdf = zappos = , test]]"
-
-let sourceCode = @"[long name,b,z, [ test = too, be = see, [third list]]]"
+let sourceCode = @"[long name,b,z, [ test = too, be = see, [third list]]] = [secondlist]"
 
 let tokenizer = new Tokenizer(new Lexer(invalidSource))
 
