@@ -1,7 +1,6 @@
 ﻿// Learn more about F# at http://fsharp.net
 
 open System
-open System.Text.RegularExpressions
 open Lexer
 open Parser
 open Tokenizer

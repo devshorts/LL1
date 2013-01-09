@@ -1,7 +1,7 @@
 LLk
 ===
 
-A simple lexer and grammar validator for a lanague of the form.  It supports arbitrary lookahead as well as alternative testing via backtracking.
+A simple lexer and grammar validator for a lanague of the form below.  It supports arbitrary lookahead as well as alternative testing via backtracking.
 
 ```
 root := list | assign
@@ -27,7 +27,6 @@ Sample application
 
 ```fsharp
 open System
-open System.Text.RegularExpressions
 open Lexer
 open Parser
 open Tokenizer
