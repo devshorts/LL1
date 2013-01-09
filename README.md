@@ -1,7 +1,7 @@
 LLk
 ===
 
-A simple LL(k) test lexer and tokenizer for things of the form
+A simple lexer and grammar validator for a lanague of the form.  It supports arbitrary lookahead as well as alternative testing via backtracking.
 
 ```
 root := list | assign
