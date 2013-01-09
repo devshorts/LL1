@@ -4,7 +4,11 @@ LLk
 A simple LL(k) test lexer and tokenizer for things of the form
 
 ```
-list := [elements]
+root := list | assign
+
+list := [elements]   
+
+assign := list = list
 
 elements := element (, element)*
 
