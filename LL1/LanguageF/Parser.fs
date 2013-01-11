@@ -1,63 +1,35 @@
 ﻿module Parser
 
+open TokenizerConsumer
 open Tokenizer
 open System
 open Utils
 
-exception InvalidSyntax of string 
-
-type TokenizerConsumer(tokenizer:Tokenizer) = 
-    let mutable index = 0
-
-    let mutable snapshotIndex = 0
-
-    let tokens = tokenizer.tokens
-
-    member this.source = tokenizer.source
-
-    member internal this.consumeToken() = 
-        let (token, value) = this.consume()
-        token
-        
-    member internal this.snapshot() = 
-        snapshotIndex <- index
-
-    member internal this.relase() = 
-        index <- snapshotIndex
-
-    member internal this.consume() = 
-        if index < ((List.length tokens) - 1) then
-            index <- index + 1
-
-        this.current()
-
-    member internal this.current() = 
-        tokens.[index]
-
-    member internal this.currentToken() = 
-        let (token, value) = this.current()
-        token
-
-    member internal this.lookForward n = 
-        tokens.[index + n]
-
-    member internal this.consumeAndAdvance token = 
-        let invalidEx token curr = 
-            InvalidSyntax (String.Format("Expecting token type {0} but found {1}", (Tokenizer.getTokenTypeName token), (Tokenizer.getTokenName (this.current()))))
-
-        let (currentToken, value) = this.current()
-        if currentToken = token then
-            this.consumeToken()
-        else
-            match token with 
-                | Name -> 
-                    match currentToken with 
-                        | Name -> this.consumeToken()
-                        | _ -> raise (invalidEx token (this.current()))
-                | _ -> raise (invalidEx token (this.current()))
-
-
 (* Validates syntax *)
+
+type ParseTree = 
+    | List of ParseTree list
+    | Assignment of ParseTree * ParseTree
+    | Token of Token
+    | Empty
+     
+let rec printTree tree = 
+    match tree with 
+        | ParseTree.List t -> Console.WriteLine("List")
+                              let rec listPrinter h = 
+                                match h with 
+                                    | h::[] -> printTree h
+                                    | h::t -> printTree h
+                                              listPrinter t
+                                    
+                              listPrinter t
+        | ParseTree.Assignment (left, right) -> Console.WriteLine("Assignment")
+                                                printTree left
+                                                Console.WriteLine("Equals")
+                                                printTree right
+        | ParseTree.Token (tokenType, name) -> Console.WriteLine("{0} - {1}", (getTokenTypeName tokenType), name)
+        | ParseTree.Empty -> Console.WriteLine("Empty")
+                            
 
 type Parser(tokenizer:Tokenizer) = 
     let tokenizerConsumer = new TokenizerConsumer(tokenizer)
@@ -88,59 +60,66 @@ type Parser(tokenizer:Tokenizer) =
 
         try
             match () with
-                | Alt rList -> this.list()
+                | Alt rList -> this.list() 
                 | Alt rAssign -> this.assign()
                 | _ -> raise (InvalidSyntax ("Could not find any suitable form"))
-            true
         with
             | Tokenizer.UnexpectedToken -> Console.WriteLine("There was an unexpected token found")
-                                           false
+                                           ParseTree.Empty
             | InvalidSyntax(error) -> Console.WriteLine(error)
-                                      false
+                                      ParseTree.Empty
 
     member private this.root func = 
-        func()
+        func() |> ignore
         take TokenType.EOF |> ignore
 
     member private this.assign() = 
-        this.list()
+        let left = this.list()
 
         take TokenType.Assignment |> ignore
 
-        this.list()
+        let right = this.list()
+
+        ParseTree.Assignment(left, right)
 
     member private this.list() = 
         take TokenType.LeftBracket |> ignore
 
-        this.elements()
+        let tokens = this.elements()
         
         take TokenType.RightBracket |> ignore
+
+        ParseTree.List(tokens)
         
     member private this.elements() = 
-        this.element() |> ignore
+        let element = this.element() 
 
-        let rec getAllElements() = 
+        let rec getAllElements l = 
             match tokenizerConsumer.currentToken() with 
                 | TokenType.Comma -> 
                                         take TokenType.Comma |> ignore
-                                        this.element()
-                                        getAllElements()
-                | _ -> ()
+                                        let elem = this.element()
+                                        getAllElements (elem::l)
+                | _ -> l
 
-        getAllElements()
+        element::(getAllElements [])
 
-    member private this.element() = 
+    member private this.element()  = 
         match tokenizerConsumer.currentToken() with 
             | TokenType.Name -> 
                 let (nextToken, _) = peek 1
 
                 match nextToken with
                     | TokenType.Assignment -> 
-                        take TokenType.Name |> ignore
+                        let left = take TokenType.Name 
+
                         take TokenType.Assignment |> ignore
-                        take TokenType.Name |> ignore
-                    | _ -> 
-                        take TokenType.Name |> ignore    
+
+                        let right = take TokenType.Name 
+                        
+                        ParseTree.Assignment(ParseTree.Token left, ParseTree.Token right)
+
+                    | _ -> ParseTree.Token(take TokenType.Name)
         
             | TokenType.LeftBracket -> this.list() 
         

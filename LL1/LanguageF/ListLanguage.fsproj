@@ -45,6 +45,7 @@
     <Compile Include="Utils.fs" />
     <Compile Include="Lexer.fs" />
     <Compile Include="Tokenizer.fs" />
+    <Compile Include="TokenizerConsumer.fs" />
     <Compile Include="Parser.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
