@@ -18,14 +18,13 @@ let invalidParser = new Parser(tokenizer)
 
 let validParser = new Parser(validTokenizer)
 
-for p in [ invalidParser; validParser ] do
+for p in [ validParser ] do
     Console.WriteLine()
 
     let tree = p.validate()
     match tree with
         | ParseTree.Empty -> Console.WriteLine("The code is invalid! For: {0}", p.source)
         | _ -> Console.WriteLine("Code valid!")
-               printTree tree
         
 
 Console.ReadKey() |> ignore

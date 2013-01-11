@@ -12,24 +12,6 @@ type ParseTree =
     | Assignment of ParseTree * ParseTree
     | Token of Token
     | Empty
-     
-let rec printTree tree = 
-    match tree with 
-        | ParseTree.List t -> Console.WriteLine("List")
-                              let rec listPrinter h = 
-                                match h with 
-                                    | h::[] -> printTree h
-                                    | h::t -> printTree h
-                                              listPrinter t
-                                    
-                              listPrinter t
-        | ParseTree.Assignment (left, right) -> Console.WriteLine("Assignment")
-                                                printTree left
-                                                Console.WriteLine("Equals")
-                                                printTree right
-        | ParseTree.Token (tokenType, name) -> Console.WriteLine("{0} - {1}", (getTokenTypeName tokenType), name)
-        | ParseTree.Empty -> Console.WriteLine("Empty")
-                            
 
 type Parser(tokenizer:Tokenizer) = 
     let tokenizerConsumer = new TokenizerConsumer(tokenizer)
@@ -100,7 +82,7 @@ type Parser(tokenizer:Tokenizer) =
                                         take TokenType.Comma |> ignore
                                         let elem = this.element()
                                         getAllElements (elem::l)
-                | _ -> l
+                | _ -> List.rev l
 
         element::(getAllElements [])
 
